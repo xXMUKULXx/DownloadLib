@@ -15,7 +15,7 @@ class DataDownloader(
     private val context: Context,
 ) {
 
-    interface ScopeDownloaderCallbacks {
+    interface DataDownloaderCallbacks {
         fun progress(progressPercentage: Int)
         fun onSuccess(path: String)
         fun onFailure(error: String)
@@ -27,7 +27,7 @@ class DataDownloader(
         outputDir: String,
         filename: String,
         extension: String,
-        callback: ScopeDownloaderCallbacks
+        callback: DataDownloaderCallbacks
     ) {
 
         val myHandler = Handler(Looper.getMainLooper())
@@ -80,7 +80,7 @@ class DataDownloader(
         outputDir: String,
         filename: String,
         extension: String,
-        callback: ScopeDownloaderCallbacks
+        callback: DataDownloaderCallbacks
     ) {
         val myHandler = Handler(Looper.getMainLooper())
         val myExecutor = Executors.newSingleThreadExecutor()

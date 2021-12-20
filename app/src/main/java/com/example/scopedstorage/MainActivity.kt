@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity() {
         tvDisplay.text = "starting download..."
         downloader.downloadInExternalStorage(
             url, outputDir, filename, extension,
-            object : DataDownloader.ScopeDownloaderCallbacks {
+            object : DataDownloader.DataDownloaderCallbacks {
                 override fun progress(progressPercentage: Int) {
                     tvDisplay.text = "progress: $progressPercentage %"
                 }
@@ -91,7 +91,7 @@ class MainActivity : AppCompatActivity() {
         tvDisplay.text = "starting download..."
         downloader.downloadInInternalStorage(
             url, outputDir, filename, extension,
-            object : DataDownloader.ScopeDownloaderCallbacks {
+            object : DataDownloader.DataDownloaderCallbacks {
                 override fun progress(progressPercentage: Int) {
                     tvDisplay.text = "progress: $progressPercentage %"
                 }
