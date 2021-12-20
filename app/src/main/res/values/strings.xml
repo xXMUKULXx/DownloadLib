@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">ScopedStorage</string>
+    <string name="show_toast">Show Toast</string>
+    <string name="display_text">display text</string>
+    <string name="download_in_external_directory">Download in External Directory</string>
+    <string name="download_in_internal_directory">Download in Internal Directory</string>
+</resources>
