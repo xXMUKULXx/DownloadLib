@@ -2,10 +2,13 @@ package com.example.scopestoragelib
 
 import android.content.ContentValues
 import android.content.Context
+import android.net.Uri
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URL
@@ -15,9 +18,16 @@ class DataDownloader(
     private val context: Context,
 ) {
 
+    data class FileData(
+        var file: File,
+        var fileName: String,
+        var filePath: String,
+        var fileUri: Uri,
+    )
+
     interface DataDownloaderCallbacks {
         fun progress(progressPercentage: Int)
-        fun onSuccess(path: String)
+        fun onSuccess(fileData: FileData)
         fun onFailure(error: String)
     }
 
@@ -38,9 +48,18 @@ class DataDownloader(
                 val folder =
                     File("${context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)}/$outputDir")
                 if (!folder.exists()) folder.mkdirs()
+
                 val fileName = "$filename.$extension"
                 val file = File(folder, fileName)
                 if (!file.exists()) file.createNewFile()
+
+                val filePath = file.absolutePath
+                val fileUri = FileProvider.getUriForFile(
+                    context,
+                    "com.scopestoragelib.provider",
+                    file
+                )
+
                 val u = URL(url)
                 val conn = u.openConnection() as HttpURLConnection
                 conn.requestMethod = "GET"
@@ -64,7 +83,7 @@ class DataDownloader(
                 fos.flush()
                 fos.close()
                 myHandler.post {
-                    callback.onSuccess(file.absolutePath)
+                    callback.onSuccess(FileData(file, fileName, filePath, fileUri))
                 }
             } catch (e: Exception) {
                 myHandler.post {
@@ -84,7 +103,10 @@ class DataDownloader(
     ) {
         val myHandler = Handler(Looper.getMainLooper())
         val myExecutor = Executors.newSingleThreadExecutor()
-        var filePath: String? = null
+        var file: File
+        val fileName = "$filename.$extension"
+        var filePath: String
+        var fileUri: Uri
 
         myExecutor.execute {
             try {
@@ -95,14 +117,14 @@ class DataDownloader(
                 connection.readTimeout = 8000
                 val contentLength = connection.contentLength
                 val buffer = ByteArray(contentLength)
-                val fileName = "$filename.$extension"
+
                 sdkAbove10 {
                     val desDirectory = "${Environment.DIRECTORY_DOWNLOADS}/$outputDir"
-                    val desFile = File(desDirectory)
-                    if (!desFile.exists()) {
-                        desFile.mkdir()
+                    file = File(desDirectory)
+                    if (!file.exists()) {
+                        file.mkdir()
                     }
-                    filePath = desFile.absolutePath
+                    filePath = file.absolutePath
                     val values = ContentValues()
                     values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
                     values.put(MediaStore.MediaColumns.RELATIVE_PATH, desDirectory)
@@ -113,24 +135,28 @@ class DataDownloader(
                     val inputStream = connection.inputStream
                     val bis = BufferedInputStream(inputStream)
                     val outputStream: OutputStream?
-                    if (uri != null) {
-                        outputStream = context.contentResolver.openOutputStream(uri)
+                    uri?.let { it ->
+                        fileUri = it
+                        outputStream = context.contentResolver.openOutputStream(it)
                         if (outputStream != null) {
                             val bos = BufferedOutputStream(outputStream)
-                            var bytes = bis.read(buffer)
                             var total: Long = 0
                             var count: Int
-                            while (bytes.also { count = it } != -1) {
+                            while (bis.read(buffer).also { count = it } != -1) {
                                 total += count.toLong()
                                 myHandler.post {
                                     callback.progress((total * 100 / contentLength).toInt())
                                 }
                                 bos.write(buffer, 0, count)
                                 bos.flush()
-                                bytes = bis.read(buffer)
                             }
                             bos.close()
                         }
+                        myHandler.post {
+                            callback.onSuccess(FileData(file, fileName, filePath, fileUri))
+                        }
+                    } ?: run {
+                        throw NullPointerException("fileUri is null.")
                     }
                     bis.close()
                 } ?: run {
@@ -138,11 +164,13 @@ class DataDownloader(
                         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path + File.separator + outputDir
                     val folder = File(desDirector)
                     if (!folder.exists()) folder.mkdirs()
-                    val desFile = File(folder, fileName)
-                    if (!desFile.exists()) desFile.createNewFile()
-                    filePath = desFile.absolutePath
+                    file = File(folder, fileName)
+                    if (!file.exists()) file.createNewFile()
+                    filePath = file.absolutePath
+                    fileUri = file.toUri()
                     val stream = DataInputStream(url.openStream())
-                    val fos = DataOutputStream(FileOutputStream(desFile.path))
+                    val fis = FileOutputStream(file.path)
+                    val fos = DataOutputStream(fis)
                     var total: Long = 0
                     var count: Int
                     while (stream.read(buffer).also { count = it } != -1) {
@@ -156,9 +184,10 @@ class DataDownloader(
                     stream.close()
                     fos.flush()
                     fos.close()
-                }
-                myHandler.post {
-                    callback.onSuccess(filePath.toString())
+                    fis.close()
+                    myHandler.post {
+                        callback.onSuccess(FileData(file, fileName, filePath, fileUri))
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

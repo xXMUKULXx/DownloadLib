@@ -77,8 +77,8 @@ class MainActivity : AppCompatActivity() {
                     tvDisplay.text = "progress: $progressPercentage %"
                 }
 
-                override fun onSuccess(path: String) {
-                    tvDisplay.text = "successfully saved at $path"
+                override fun onSuccess(fileData: DataDownloader.FileData) {
+                    tvDisplay.text = "successfully saved at $fileData"
                 }
 
                 override fun onFailure(error: String) {
@@ -96,8 +96,8 @@ class MainActivity : AppCompatActivity() {
                     tvDisplay.text = "progress: $progressPercentage %"
                 }
 
-                override fun onSuccess(path: String) {
-                    tvDisplay.text = "successfully saved at $path"
+                override fun onSuccess(fileData: DataDownloader.FileData) {
+                    tvDisplay.text = "successfully saved at ${fileData.filePath}"
                 }
 
                 override fun onFailure(error: String) {
