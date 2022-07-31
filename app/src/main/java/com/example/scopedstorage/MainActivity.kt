@@ -1,8 +1,12 @@
 package com.example.scopedstorage
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.scopestoragelib.DataDownloader
@@ -15,10 +19,11 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val TAG = "MAIN_ACTIVITY"
-        const val url: String = "https://flyermaker.vasundharaapps.com/public/image/xr_2.mp4"
+        const val url: String =
+            "https://interactive-examples.mdn.mozilla.net/media/cc0-images/grapefruit-slice-332-332.jpg"
         const val outputDir: String = "ScopedStorage"
         const val filename: String = "video"
-        const val extension: String = "mp4"
+        const val extension: String = "jpg"
     }
 
     private var lastTask: String = ""
@@ -79,6 +84,7 @@ class MainActivity : AppCompatActivity() {
 
                 override fun onSuccess(fileData: DataDownloader.FileData) {
                     tvDisplay.text = "successfully saved at $fileData"
+                    shareToWhatsapp(fileData.fileUri)
                 }
 
                 override fun onFailure(error: String) {
@@ -98,11 +104,28 @@ class MainActivity : AppCompatActivity() {
 
                 override fun onSuccess(fileData: DataDownloader.FileData) {
                     tvDisplay.text = "successfully saved at ${fileData.filePath}"
+                    shareToWhatsapp(fileData.fileUri)
                 }
 
                 override fun onFailure(error: String) {
                     tvDisplay.text = "Error: $error"
                 }
             })
+    }
+
+    private fun shareToWhatsapp(imgUri: Uri) {
+        val whatsappIntent = Intent(Intent.ACTION_SEND)
+        whatsappIntent.type = "text/plain"
+        whatsappIntent.setPackage("com.whatsapp")
+        whatsappIntent.putExtra(Intent.EXTRA_TEXT, "The downloaded image.")
+        whatsappIntent.putExtra(Intent.EXTRA_STREAM, imgUri)
+        whatsappIntent.type = "image/jpeg"
+        whatsappIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+        try {
+            startActivity(whatsappIntent)
+        } catch (ex: ActivityNotFoundException) {
+            Toast.makeText(this, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
+        }
     }
 }
